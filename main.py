@@ -156,7 +156,7 @@ async def show_settings(c: Client, m: Message):
     if not user:
         return
     s = get_user_settings(user.id)
- await m.reply_text("Your settings:\\n" + "\\n".join(f"{k}: {v}" for k, v in s.items()))
+    await m.reply_text("Your settings:\n" + "\n".join(f"{k}: {v}" for k, v in s.items()))
 
 @app.on_message(filters.document & filters.private)
 async def handle_document(c: Client, m: Message):
