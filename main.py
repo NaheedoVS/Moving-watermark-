@@ -226,7 +226,7 @@ async def main():
             await app.idle()
             break
         except BadMsgNotification as e:
-            if '[16]' in str(e) and attempt < max_retries - 1:
+            if e.CODE == 16 and attempt < max_retries - 1:
                 print(f"Time sync error (attempt {attempt + 1}/{max_retries}). Retrying in 3 seconds...")
                 await asyncio.sleep(3)
             else:
