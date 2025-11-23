@@ -5,3 +5,5 @@ python-dotenv
 pillow
 pypdf
 ffmpeg-python
+reportlab
+PyPDF2
