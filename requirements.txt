@@ -7,3 +7,5 @@ pypdf
 ffmpeg-python
 reportlab
 PyPDF2
+flask==2.3.3  # ← Ye add kar de
+moviepy  # Ya jo bhi tere helpers mein hai
