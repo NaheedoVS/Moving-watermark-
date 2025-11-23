@@ -4,27 +4,28 @@ import uuid
 import tempfile
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from pyrogram.errors import BadMsgNotification
 from dotenv import load_dotenv
-import aiofiles
+
 from utils import get_user_settings, set_user_settings
 from ffmpeg_helper import add_watermark_video
 from pdf_helper import add_watermark_to_pdf
 
 load_dotenv()
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-API_ID = int(os.environ.get("API_ID", "0"))
-API_HASH = os.environ.get("API_HASH")
-OWNER_ID = os.environ.get("OWNER_ID")
+# === ENV VARIABLES ===
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+API_ID = int(os.getenv("API_ID", "0"))
+API_HASH = os.getenv("API_HASH")
 
 if not BOT_TOKEN or not API_ID or not API_HASH:
-    raise RuntimeError("BOT_TOKEN, API_ID and API_HASH must be set as environment variables")
+    raise RuntimeError("BOT_TOKEN, API_ID aur API_HASH Heroku config vars mein set kar bhosdike!")
 
 app = Client("movable-watermark-bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
 
 def safe_tmpfile(suffix=""):
     return os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}{suffix}")
+
+# =================== COMMANDS ===================
 
 @app.on_message(filters.command("start") & filters.private)
 async def start(c: Client, m: Message):
@@ -44,199 +45,152 @@ async def start(c: Client, m: Message):
 
 @app.on_message(filters.command("settext") & filters.private)
 async def set_text(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
+    if not m.from_user: return
     args = m.text.split(" ", 1)
     if len(args) < 2 or not args[1].strip():
-        await m.reply_text("Usage: /settext Your watermark text")
-        return
-    s = get_user_settings(user.id)
+        return await m.reply_text("Usage: /settext Your watermark text")
+    s = get_user_settings(m.from_user.id)
     s["text"] = args[1].strip()
-    set_user_settings(user.id, s)
-    await m.reply_text(f"Watermark text set to: {s['text']}")
+    set_user_settings(m.from_user.id, s)
+    await m.reply_text(f"Watermark text set → {s['text']}")
 
 @app.on_message(filters.command("setcolor") & filters.private)
 async def set_color(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
+    if not m.from_user: return
     args = m.text.split(" ", 1)
     if len(args) < 2 or args[1].strip().lower() not in ("white", "black"):
-        await m.reply_text("Usage: /setcolor white OR /setcolor black")
-        return
-    s = get_user_settings(user.id)
+        return await m.reply_text("Usage: /setcolor white OR black")
+    s = get_user_settings(m.from_user.id)
     s["color"] = args[1].strip().lower()
-    set_user_settings(user.id, s)
-    await m.reply_text(f"Watermark color set to: {s['color']}")
+    set_user_settings(m.from_user.id, s)
+    await m.reply_text(f"Color → {s['color']}")
 
 @app.on_message(filters.command("setsize") & filters.private)
 async def set_size(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
-    args = m.text.split(" ", 1)
+    if not m.from_user: return
     try:
-        size = int(args[1].strip())
-        if size < 10 or size > 200:
-            raise ValueError()
+        size = int(m.text.split()[1])
+        if not 10 <= size <= 200: raise ValueError
     except Exception:
-        await m.reply_text("Size must be a number between 10 and 200")
-        return
-    s = get_user_settings(user.id)
+        return await m.reply_text("Size 10-200 ke beech mein daal")
+    s = get_user_settings(m.from_user.id)
     s["size"] = size
-    set_user_settings(user.id, s)
-    await m.reply_text(f"Watermark font size set to: {size}")
+    set_user_settings(m.from_user.id, s)
+    await m.reply_text(f"Font size → {size}")
 
 @app.on_message(filters.command("setdirection") & filters.private)
 async def set_direction(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
-    args = m.text.split(" ", 1)
-    val = args[1].strip().lower() if len(args) > 1 else ""
+    if not m.from_user: return
+    val = m.text.split(maxsplit=1)[1].lower() if len(m.text.split()) > 1 else ""
     if val not in ("static", "left-right", "top-bottom"):
-        await m.reply_text("Usage: /setdirection static|left-right|top-bottom")
-        return
-    s = get_user_settings(user.id)
+        return await m.reply_text("Valid: static | left-right | top-bottom")
+    s = get_user_settings(m.from_user.id)
     s["direction"] = val
-    set_user_settings(user.id, s)
-    await m.reply_text(f"Movement direction set to: {val}")
+    set_user_settings(m.from_user.id, s)
+    await m.reply_text(f"Direction → {val}")
 
 @app.on_message(filters.command("setcrf") & filters.private)
 async def set_crf(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
-    args = m.text.split(" ", 1)
+    if not m.from_user: return
     try:
-        crf = int(args[1].strip())
-        if crf < 0 or crf > 51:
-            raise ValueError()
+        crf = int(m.text.split()[1])
+        if not 0 <= crf <= 51: raise ValueError
     except Exception:
-        await m.reply_text("CRF must be a number between 0 and 51 (recommended 18-28)")
-        return
-    s = get_user_settings(user.id)
+        return await m.reply_text("CRF 0-51 ke beech mein daal")
+    s = get_user_settings(m.from_user.id)
     s["crf"] = crf
-    set_user_settings(user.id, s)
-    await m.reply_text(f"CRF set to: {crf}")
+    set_user_settings(m.from_user.id, s)
+    await m.reply_text(f"CRF → {crf}")
 
 @app.on_message(filters.command("setres") & filters.private)
 async def set_res(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
-    args = m.text.split(" ", 1)
-    val = args[1].strip().lower() if len(args) > 1 else ""
+    if not m.from_user: return
+    val = m.text.split(maxsplit=1)[1].lower() if len(m.text.split()) > 1 else ""
     if val not in ("original", "1080", "720", "480"):
-        await m.reply_text("Usage: /setres original|1080|720|480")
-        return
-    s = get_user_settings(user.id)
+        return await m.reply_text("Valid: original | 1080 | 720 | 480")
+    s = get_user_settings(m.from_user.id)
     s["resolution"] = val
-    set_user_settings(user.id, s)
-    await m.reply_text(f"Resolution set to: {val}")
+    set_user_settings(m.from_user.id, s)
+    await m.reply_text(f"Resolution → {val}")
 
 @app.on_message(filters.command("togglecompress") & filters.private)
 async def toggle_compress(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
-    args = m.text.split(" ", 1)
-    val = args[1].strip().lower() if len(args) > 1 else ""
+    if not m.from_user: return
+    val = m.text.split(maxsplit=1)[1].lower() if len(m.text.split()) > 1 else ""
     if val not in ("on", "off"):
-        await m.reply_text("Usage: /togglecompress on|off")
-        return
-    s = get_user_settings(user.id)
+        return await m.reply_text("Usage: /togglecompress on OR off")
+    s = get_user_settings(m.from_user.id)
     s["compress"] = (val == "on")
-    set_user_settings(user.id, s)
-    await m.reply_text(f"Compression set to: {s['compress']}")
+    set_user_settings(m.from_user.id, s)
+    await m.reply_text(f"Compression → {'ON' if s['compress'] else 'OFF'}")
 
 @app.on_message(filters.command("showsettings") & filters.private)
 async def show_settings(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
-    s = get_user_settings(user.id)
-    await m.reply_text("Your settings:\n" + "\n".join(f"{k}: {v}" for k, v in s.items()))
+    if not m.from_user: return
+    s = get_user_settings(m.from_user.id)
+    txt = "Your Settings:\n\n" + "\n".join(f"• {k}: {v}" for k, v in s.items())
+    await m.reply_text(txt)
+
+# =================== HANDLERS ===================
 
 @app.on_message(filters.document & filters.private)
 async def handle_document(c: Client, m: Message):
-    # Accept PDFs only
-    if not m.document:
-        return
-    if m.document.mime_type != "application/pdf":
-        await m.reply_text("Only PDF files are supported for documents.")
-        return
-    user = m.from_user
-    s = get_user_settings(user.id)
-    msg = await m.reply_text("Downloading PDF...")
+    if not m.document or m.document.mime_type != "application/pdf":
+        return await m.reply_text("Sirf PDF bhejo bhai")
+    s = get_user_settings(m.from_user.id)
+    msg = await m.reply_text("PDF download ho raha...")
     in_path = safe_tmpfile(".pdf")
     out_path = safe_tmpfile(".pdf")
     try:
         await m.download(file_name=in_path)
-        await msg.edit("Applying watermark to PDF...")
+        await msg.edit("Watermark laga raha hu...")
         add_watermark_to_pdf(in_path, out_path, s["text"], fontsize=s["size"], color=s["color"])
-        await msg.edit("Uploading watermarked PDF...")
-        await c.send_document(chat_id=m.chat.id, document=out_path, caption="Watermarked PDF")
+        await msg.edit("Upload kar raha hu...")
+        await c.send_document(m.chat.id, out_path, caption="Watermarked PDF")
         await msg.delete()
     except Exception as e:
         await msg.edit(f"Error: {e}")
     finally:
         for p in (in_path, out_path):
-            try:
-                os.remove(p)
-            except Exception:
-                pass
+            try: os.remove(p)
+            except: pass
 
 @app.on_message(filters.video & filters.private)
 async def handle_video(c: Client, m: Message):
-    user = m.from_user
-    if not user:
-        return
-    s = get_user_settings(user.id)
-    msg = await m.reply_text("Downloading video...")
+    if not m.from_user: return
+    s = get_user_settings(m.from_user.id)
+    msg = await m.reply_text("Video download kar raha hu...")
     in_path = safe_tmpfile(".mp4")
-    intermediate = safe_tmpfile(".mp4")
     out_path = safe_tmpfile(".mp4")
     try:
         await m.download(file_name=in_path)
-        await msg.edit("Processing video (watermark + compression)...")
-        # If compression disabled, pass original resolution and crf but we still transcode to apply drawtext.
-        crf = s.get("crf", 20)
-        res = s.get("resolution", "original")
-        await add_watermark_video(in_path, out_path, s["text"], color=s.get("color","white"), fontsize=s.get("size",36), direction=s.get("direction","static"), crf=crf, resolution=res)
-        await msg.edit("Uploading processed video...")
-        await c.send_video(chat_id=m.chat.id, video=out_path, caption="Watermarked video")
+        await msg.edit("Moving watermark laga raha hu + compress kar raha hu...")
+        await add_watermark_video(
+            in_path, out_path,
+            text=s["text"],
+            color=s.get("color", "white"),
+            fontsize=s.get("size", 36),
+            direction=s.get("direction", "static"),
+            crf=s.get("crf", 23),
+            resolution=s.get("resolution", "original")
+        )
+        await msg.edit("Final video upload ho raha...")
+        await c.send_video(m.chat.id, out_path, caption="Done! Moving watermark laga diya")
         await msg.delete()
     except Exception as e:
         await msg.edit(f"Error: {e}")
     finally:
-        for p in (in_path, intermediate, out_path):
-            try:
-                os.remove(p)
-            except Exception:
-                pass
+        for p in (in_path, out_path):
+            try: os.remove(p)
+            except: pass
+
+# =================== MAIN (NO IDLE, NO CRASH) ===================
 
 async def main():
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            await app.start()
-            print("Bot started successfully!")
-            await app.idle()
-            break
-        except BadMsgNotification as e:
-            error_str = str(e)
-            if '[16]' in error_str and attempt < max_retries - 1:
-                print(f"Time sync error caught: {error_str} (attempt {attempt + 1}/{max_retries}). Retrying in 3 seconds...")
-                await asyncio.sleep(3)
-            else:
-                print(f"Failed to start bot after {max_retries} attempts: {error_str}")
-                raise
-        except Exception as e:
-            print(f"Unexpected error starting bot: {e}")
-            raise
+    print("Bot shuru ho raha hai...")
+    await app.start()
+    print("Bot ONLINE ho gaya! Ab video/PDF daal ke maze le")
+    await asyncio.Event().wait()   # Ye bot ko forever zinda rakhega
 
-if __name__ == '__main__':
-    print("Starting bot...")
+if __name__ == "__main__":
     asyncio.run(main())
