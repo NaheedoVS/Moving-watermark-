@@ -226,11 +226,12 @@ async def main():
             await app.idle()
             break
         except BadMsgNotification as e:
-            if e.CODE == 16 and attempt < max_retries - 1:
-                print(f"Time sync error (attempt {attempt + 1}/{max_retries}). Retrying in 3 seconds...")
+            error_str = str(e)
+            if '[16]' in error_str and attempt < max_retries - 1:
+                print(f"Time sync error caught: {error_str} (attempt {attempt + 1}/{max_retries}). Retrying in 3 seconds...")
                 await asyncio.sleep(3)
             else:
-                print(f"Failed to start bot after {max_retries} attempts: {e}")
+                print(f"Failed to start bot after {max_retries} attempts: {error_str}")
                 raise
         except Exception as e:
             print(f"Unexpected error starting bot: {e}")
