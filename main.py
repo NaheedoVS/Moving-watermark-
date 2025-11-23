@@ -1,12 +1,3 @@
-import time
-from datetime import datetime, timezone
-
-# Force system time sync workaround
-now = datetime.now(timezone.utc)
-ts = int(now.timestamp())
-time.time = lambda: ts
-
-
 import os
 import asyncio
 import uuid
