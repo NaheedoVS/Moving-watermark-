@@ -4,6 +4,7 @@ import uuid
 import tempfile
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pyrogram.errors import BadMsgNotification
 from dotenv import load_dotenv
 import aiofiles
 from utils import get_user_settings, set_user_settings
@@ -216,6 +217,25 @@ async def handle_video(c: Client, m: Message):
             except Exception:
                 pass
 
+async def main():
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            await app.start()
+            print("Bot started successfully!")
+            await app.idle()
+            break
+        except BadMsgNotification as e:
+            if e.ERROR_CODE == 16 and attempt < max_retries - 1:
+                print(f"Time sync error (attempt {attempt + 1}/{max_retries}). Retrying in 3 seconds...")
+                await asyncio.sleep(3)
+            else:
+                print(f"Failed to start bot after {max_retries} attempts: {e}")
+                raise
+        except Exception as e:
+            print(f"Unexpected error starting bot: {e}")
+            raise
+
 if __name__ == '__main__':
     print("Starting bot...")
-    app.run()
+    asyncio.run(main())
