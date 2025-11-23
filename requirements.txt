@@ -1,6 +1,7 @@
-pyrogram==2.0.51
+pyrogram==2.0.106
 tgcrypto
-python-dotenv
-PyPDF2==3.0.1
-reportlab==4.0.0
 aiofiles
+python-dotenv
+pillow
+pypdf
+ffmpeg-python
