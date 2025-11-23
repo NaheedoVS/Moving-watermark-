@@ -1,11 +1,11 @@
 import time
-import pytz
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Force system time sync workaround
-now = datetime.now(pytz.utc)
+now = datetime.now(timezone.utc)
 ts = int(now.timestamp())
 time.time = lambda: ts
+
 
 import os
 import asyncio
