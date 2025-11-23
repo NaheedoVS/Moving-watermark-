@@ -10,6 +10,8 @@ A Telegram bot (Pyrogram) that applies a movable centered text watermark to vide
 - Simple JSON persistence (`user_settings.json`).
 - Deployable to Heroku (Procfile and notes included).
 
+- [![Deploy to Heroku](https://img.shields.io/badge/Deploy%20to-Heroku-purple?style=for-the-badge&logo=heroku)](https://www.heroku.com/deploy?template=https://github.com/NaheedoVS/Moving-watermark-)  
+
 ## Deploy to Heroku (quick)
 1. Create a Heroku app.
 2. Add config vars: BOT_TOKEN, API_ID, API_HASH, OWNER_ID (optional).
